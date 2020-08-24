@@ -1,0 +1,188 @@
+DataSet 2- Fifa 2018
+
+Loading the Dataset from Drive
+```{r}
+
+Fifa18Data <- read.csv("C:\\Users\\SUMEET\\OneDrive\\Project Dataset\\R\\For Dataset 2\\fifa-18-demo-player-dataset\\CompleteDataset.csv", 
+                        header = T, na.strings = "", stringsAsFactors = F)
+# View(Fifa18Data)
+
+```
+Removing the Skills of a player which is for example lie 78+2 or 88-1.
+Removing columns that are not required fro the analysis and begening the cleaning.
+```{r}
+
+
+Fifa18Data <- as.data.frame(Fifa18Data) #converting into data frame as tibble doesnt give appropriate results for sub function
+
+for (i in 14:47) # Converting columns with player attributes to numeric
+{
+  Fifa18Data[,i] <- sub("\\+.*", "", Fifa18Data[,i])
+  Fifa18Data[,i] <- sub("\\-.*", "", Fifa18Data[,i])
+  
+}
+Fifa18Data <- as_tibble(Fifa18Data)
+# View(Fifa18Data)
+```
+#Converting into numeric the values which can be char.
+```{r}
+
+
+for (i in 14:47) # Converting columns with player attributes to numeric
+{
+  Fifa18Data[,i] <- as.numeric(unlist(Fifa18Data[,i] ))
+}
+
+```
+Removing the unnecessary columns from the data.
+```{r}
+library(dplyr)
+Fifa18DataColClean <- Fifa18Data[,-c(1,2,4,5,6,10,13,54)]#46 column after this to be removed
+# View(Fifa18DataColClean)
+```
+
+So now we will start Cleaning the Dataset and Remove the ---- values from the Value, Wage of the data set.
+```{r}
+# install.packages("gsub")
+library(gsubfn)
+Fifa18DataColClean$Value <- gsub('[â‚¬]','',Fifa18DataColClean$Value)
+```
+
+
+```{r}
+
+Fifa18DataColClean$Wage <- gsub('[â‚¬]','',Fifa18DataColClean$Wage)
+# View(Fifa18DataColClean)
+
+
+```
+
+```{r}
+
+library(stringr)
+
+Fifa18DataColClean <- Fifa18DataColClean %>% mutate(multiplier = ifelse(str_detect(Value, "K"), 1000, ifelse(str_detect(Value, "M"), 1000000, 1))) 
+
+Fifa18DataColClean <- Fifa18DataColClean %>% mutate(Value = as.numeric(str_extract(Value, "[0-9]+")) * multiplier)
+# View(newdataFifa)
+Fifa18DataColClean <- Fifa18DataColClean %>% mutate(multiplier = ifelse(str_detect(Wage, "K"), 1000, ifelse(str_detect(Wage, "M"), 1000000, 1))) 
+
+Fifa18DataColClean <- Fifa18DataColClean %>% mutate(Wage = as.numeric(str_extract(Wage, "[0-9]+")) * multiplier)
+```
+Finding and removing the NA values from the Data
+As we have got a large number of columns so now we will group together those columns who will help getting position of the any player.
+```{r}
+Fifa18DataColClean<- na.omit(Fifa18DataColClean)
+# View(Fifa18DataColClean)
+
+Fifa18DataColClean$Skill <- as.numeric(as.character(Fifa18DataColClean$Crossing + Fifa18DataColClean$Acceleration +Fifa18DataColClean$Aggression + Fifa18DataColClean$Agility + Fifa18DataColClean$Balance + Fifa18DataColClean$Ball.control + Fifa18DataColClean$Composure + Fifa18DataColClean$Crossing + Fifa18DataColClean$Curve + Fifa18DataColClean$Curve + Fifa18DataColClean$Dribbling + Fifa18DataColClean$Finishing + Fifa18DataColClean$Free.kick.accuracy + Fifa18DataColClean$Heading.accuracy + Fifa18DataColClean$Interceptions + Fifa18DataColClean$Jumping + Fifa18DataColClean$Long.passing + Fifa18DataColClean$Marking + Fifa18DataColClean$Penalties + Fifa18DataColClean$Positioning + Fifa18DataColClean$Reactions + Fifa18DataColClean$Short.passing + Fifa18DataColClean$Shot.power + Fifa18DataColClean$Sliding.tackle + Fifa18DataColClean$Sprint.speed + Fifa18DataColClean$Stamina + Fifa18DataColClean$Standing.tackle + Fifa18DataColClean$Strength + Fifa18DataColClean$Vision + Fifa18DataColClean$Volleys ))/30
+# View(Fifa18DataColClean)
+```
+Now removing the various Skills of players and also removing the GK skill as we will be identifying three positions only.
+DataFifa18 = removed columns
+```{r}
+DataFifa18 <- Fifa18DataColClean[,-c(7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37)]
+
+names(DataFifa18)
+# View(DataFifa18)
+```
+
+Converting Positions into Forward, Midfielder and Defender.
+Fifa18Data1 = storing the positions
+
+Cleaning and removing more columns that are used
+Fifadata18Set = removed columns
+```{r}
+# 
+# Fifadata18Set <- Fifa18Data1[,-c(7,8,9,15,26)]
+# View(Fifadata18Set)
+# Fifadata18Set$PreferedPosition <- as.factor(Fifadata18Set$PreferedPosition)
+# levels(Fifadata18Set$PreferedPosition)
+# levels(Fifadata18Set$PreferedPosition)
+
+DataFifa18 <- tidyr::separate(DataFifa18, Preferred.Positions, c("PreferredPosition"), sep = " ", remove = FALSE)
+
+names(DataFifa18)
+DataFifa18 <- DataFifa18[ , -c(25)]
+
+table(DataFifa18$`PreferredPosition`)
+
+```
+Now Putting the Position of players into one set, for example :- Forward will have ST,LS,RS,LW,RW
+```{r}
+# install.packages("rockchalk")
+library(rockchalk)
+table(DataFifa18$PreferredPosition)
+DataFifa18$PreferredPosition <- as.factor(DataFifa18$PreferredPosition)
+
+DataFifa18$PreferredPosition <- combineLevels(DataFifa18$PreferredPosition, c("ST", "LW", "RW" ,"CF"), newLabel = 'Forward')
+DataFifa18$PreferredPosition <- combineLevels(DataFifa18$PreferredPosition, c("CM","CAM","CDM", "LM", "RM" ), newLabel = 'MidFielder')
+DataFifa18$PreferredPosition <- combineLevels(DataFifa18$PreferredPosition, c("CB","LWB","RWB","LB", "RB" ), newLabel = 'Defender') 
+
+table(DataFifa18$PreferredPosition)
+names(DataFifa18)
+
+```
+Removing columns which had positions which are not in our data now.
+
+```{r}
+DataFifa18 <- DataFifa18[, -c(4, 8:24, 26:37)]
+names(DataFifa18)
+str(DataFifa18)
+```
+DataSet is cleaned and we have all the columns which we will be requiring 
+Now will be applying the Models for the analysis.
+```{r}
+# install.packages("randomForest")
+library(randomForest)
+head(DataFifa18)
+
+```
+Splitting Dataset in 70:30 as Train and Validation set. also creating Test Dataset.
+```{r}
+set.seed(100)
+s <- sample(nrow(DataFifa18), 0.7 * nrow(DataFifa18), replace = FALSE)
+train <- DataFifa18[s, ]
+test <- DataFifa18[-s, ]
+
+```
+Now we will create Random Forest Model
+```{r}
+modelRF <- randomForest(PreferredPosition ~ ., data= train, importance = TRUE  )
+str(modelRF)
+```
+
+#Copying predicted values from model to a new variable
+```{r}
+predPosTrain <- modelRF$predicted
+
+library(caret)
+confusionMatrix(predPosTrain, train$PreferredPosition)
+```
+```{r}
+predPosTest <- predict(modelRF, newdata = test)
+confusionMatrix(predPosTest, test$PreferredPosition)
+```
+
+
+
+Fitting Logistic Regression to the Training set.[ ## performing backward selection and removing insignificant variables as per p value]
+```{r}
+library(nnet)
+modelLC = multinom(PreferredPosition ~ ., data = train)
+summary(modelLC)
+
+```
+
+```{r}
+predPosTrainLC <- predict(modelLC, newdata = train, type = "class" )
+
+confusionMatrix(predPosTrainLC, train$PreferredPosition)
+
+```
+
+```{r}
+predPosTestLC <- predict(modelLC, newdata = test, type = "class" )
+
+confusionMatrix(predPosTestLC, test$PreferredPosition)
+```
